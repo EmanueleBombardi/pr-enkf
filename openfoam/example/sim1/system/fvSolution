@@ -1,0 +1,234 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  1.6                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+/*BW: you need to define a solver for each variable you are solving
+      The solver can be modified during running.
+
+      Incompressible solvers like icoFoam, simpleFoam, pisoFoam, pimpleFoam) use the
+      modified pressure P=p/rho so when you show results multiply P by rho to have the
+      physical pressure.
+*/
+
+solvers
+{
+/*BW: The GAMG solver can often be the optimal choice for p equation
+However, if you use more than 1024 processsors check the Newton-Krylov.
+For multiphase problems GAMG solver can give issues due to nCoarsestCells
+This parameter in this case has to be set at the order of 1000
+
+Run renumberMesh -latestTime to increase the speed of the linear solvers, especially during the first steps
+
+Increase the tolerance and the relTol (between initial and final residuals) steps by steps
+- Start with tolerance 1e-05 and relTol 0.01
+- Then move to tolerance 1e-06 and relTol 0.001
+- Extreme: PC precision 10^-12 for steady state (put relTol to 0 to reach that)
+
+Alternative solver for p: PCG
+If speed of the solver is too slow try tolerance 1e-4 and relTol 0.05;
+
+For U equation PBiCG solver can be used with 1e-08 tolerance and no relTol (0.0)
+This is the default segregated solver which first solves U component X, then Y, then Z
+To get some improvements in terms of stability you can solve all the U components at once
+by using the coupled solver (tolerance will be set as vector)
+
+ 
+*/
+
+    Phi
+    {
+     solver       GAMG;
+     smoother     DIC;
+     tolerance    1e-6;
+     relTol      0.001;
+     }
+      
+    p
+    {
+        /*solver           GAMG;
+	//tolerance        1e-8; 
+        tolerance        1e-6;
+        relTol           0.001;
+        minIter            3;
+        //maxIter          100; //BW: be careful, especially during first steps
+        smoother         GaussSeidel;
+        nPreSweeps       0;
+        nPostSweeps      2;
+        //nFinestSweeps    2;
+        cacheAgglomeration on;
+        agglomerator     faceAreaPair;
+        nCellsInCoarsestLevel 4000;
+        mergeLevels      1;*/
+
+        
+        solver		  PCG;
+	preconditioner 	  DIC;
+        tolerance	  1e-06;
+        relTol            0.0001;
+        minIter            3;
+        maxIter		 200;
+    }
+    
+    /*//BW: When using PISO or PIMPLE solvers you can set the tolerance for the final
+      //    corrector step (all computational effort will be in the last corrector step
+      //    and intermediate steps will have more relaxed convergence)
+    p
+    {
+        solver           GAMG; 
+        tolerance        1e-05;
+        relTol           0.05;
+        smoother         GaussSeidel;
+        nPreSweeps       0;
+        nPostSweeps      2;
+        cacheAgglomeration on;
+        agglomerator     faceAreaPair;
+        nCellsInCoarsestLevel 1000;
+        mergeLevels      1;
+    }
+    pFinal
+    {
+        solver           GAMG; 
+        tolerance        1e-06;
+        relTol           0.0;
+        minIter            3;
+        smoother         GaussSeidel;
+        nPreSweeps       0;
+        nPostSweeps      2;
+        cacheAgglomeration on;
+        agglomerator     faceAreaPair;
+        nCellsInCoarsestLevel 1000;
+        mergeLevels      1;
+    }
+    */
+
+    "(U|k|omega|epsilon)"
+    {
+        solver           smoothSolver;
+        smoother         symGaussSeidel; //BW: stronger than GaussSeidel(1 additional step)
+        
+        //BW: Extreme tolerance: PC precision 10^-10 for steady state 
+        //    (put relTol to 0 to reach that)
+        tolerance        1e-8;
+	/*tolerance        1e-6; 
+        relTol           0.001;*/
+        minIter          3;
+        nSweeps          1;
+
+        /*
+        solver		  PBiCG;
+	preconditioner 	  DILU;
+        tolerance	  1e-08;
+        relTol            0.0;
+        minIter             3;
+        */
+        
+        /*
+        type		  coupled;
+        solver		  cPBiCCCG;
+	preconditioner 	  DILU;
+        tolerance	  (1e-08 1e-08 1e-08);
+        relTol            (0 0 0);
+        minIter                3;
+        */
+    }
+
+}
+
+
+
+SIMPLE
+{
+/*  BW: The number of non-orthogonal correctors should correspond to the mesh 
+    for the case being solved, i.e. 0 for an orthogonal mesh and increasing 
+    with the degree of non-orthogonality up to, say, 20 for the most 
+    non-orthogonal meshes.
+*/
+    //BW: Suggestions:
+    //nNonOrthogonalCorrectors 3; //non-ortho between 70 and 85
+    //nNonOrthogonalCorrectors 2; //non-ortho between 50 and 70
+    //nNonOrthogonalCorrectors 1; //non-ortho less than 50
+
+    nNonOrthogonalCorrectors 0;//BW: at least 1, especially when using PISO solvers
+    //consistent yes; //BW: activation of SIMPLEC
+    pRefCell        0; //cell numbered 0
+    pRefValue       0;
+    
+    /* BW: Residuals here (one per variable). 
+       If one variable is not specified, zero is assumed as desired residual 
+       (iterations will not stop). Be careful with residuals, they are not always
+       indicative of a converged solution, especially for unsteady flows.
+       Try to monitor a physical quantity and see if it does not change in time.
+       The quantity to choose is the one you are interested on.
+       The convergence criterion is applied on FINAL RESIDUALS.
+    */
+    residualControl
+    {
+        p               1e-8;
+        U               1e-8;
+        "(k|epsilon|omega)" 1e-8;
+    }
+}
+
+potentialFlow //Initialising fields
+{
+	nNonOrthogonalCorrectors 10; //10 non-orthogonal corrector steps gives a good initialized field
+}
+/*
+relaxationFactors
+{
+    fields
+    {
+        rho             1.0;
+        p_rgh           0.9;
+    }
+    equations
+    {
+        U               0.2;//0.2;
+        h               0.2;//0.2;
+        "(k|omega|epsilon|R)"   0.5;
+        //G               0.7;
+        "ILambda.*"     0.7;
+    }
+  
+}*/
+
+relaxationFactors 
+/* BW: typical of steady solver using SIMPLE to suppress oscillations.
+   The recommendation is to always use under-relaxation factors that are as high as
+   possible without resulting in oscillations or divergence. Some rules of thumb:
+   - Keep the default value if possible
+   - Starting from them, decrease the value to improve the stability of the solution
+   - You will pay the stability slowing down the solver
+   - Trials and errors are frequent to get the best under-relaxation factors
+   - Pay attention: adding new equations to solve means introducing new under-relaxation
+     factors. If you do not do that the default value will be 1.
+*/
+{
+   /* BW: Not necessary with SIMPLEC*/
+   fields
+   {
+     p               0.5; //default value 0.3
+   }
+   equations
+   {   
+     U               0.3; //default value 0.7
+     k               0.3; //default value 0.7
+     epsilon         0.3; //default value 0.7
+     omega	     0.3; //default value 0.7
+   }
+   
+}
+
+// ************************************************************************* //

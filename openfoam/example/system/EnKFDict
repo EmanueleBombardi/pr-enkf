@@ -1,0 +1,105 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v10 (Foundation)                      |
+|   \\  /    A nd           | Website:  www.openfoam.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      EnKFDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// ------------------------------------------------------------------
+// Cycle control
+//   iterationCount : current cycle index (1 = fresh start; advanced by
+//                    submit_and_update.sh after each analysis)
+//   updateInterval : solver iterations per cycle — one value for all
+//                    sims, or one per sim in sim1, sim2, ... order
+//                    (single line)
+//   nCycles        : number of EnKF analysis cycles (common to all sims)
+// In cycle c, sim k runs until iteration c * updateInterval[k].
+// ------------------------------------------------------------------
+iterationCount       1;
+updateInterval  (400 500);
+nCycles         10;
+
+nEnsembles           40;
+cfdUncertainty       0.1;      // read but not yet used by the class
+obsUncertainty       0.4;
+inflationFactor      1.1;
+
+// true: each simN/system/decomposeParDict is used (numberOfSubdomains
+// may differ per sim); members are decomposed at setup and run with
+// -parallel.
+parallelRun          true;
+
+// ------------------------------------------------------------------
+// SLURM settings for the generated run_all_members.sh
+// ------------------------------------------------------------------
+cluster
+{
+    scheduler          slurm;
+    account            urban;
+    partition          batch;
+    timeLimit          "00:30:00";   // for ONE cycle of all members
+    solverExecutable   simpleFoam;
+    envScript          "$HOME/of10.sh";
+}
+
+// ------------------------------------------------------------------
+// Calibrated parameters
+//   parameterFile: path, relative to each member case, of the file
+//   holding the parameters (any OpenFOAM dictionary file).
+//   default / perturbRange / priorUncertainty: a scalar (replicated to
+//   all clusters) or a list of nClusters values.
+// ------------------------------------------------------------------
+parameterFile        "constant/turbulenceProperties";
+
+nClusters            5;
+
+parameters
+(
+    { name a1;             default 0.31;   perturbRange 0.1;  priorUncertainty 0.1; }
+    { name alphaOmega2;    default 0.856;  perturbRange 0.1;  priorUncertainty 0.1; }
+    { name betaStar;       default 0.09;   perturbRange 0.1;  priorUncertainty 0.1; }
+);
+
+// ------------------------------------------------------------------
+// Cluster localisation (optional)
+//   The solver writes one field per cluster, <clusterDistanceField>0
+//   ... <clusterDistanceField>(nClusters-1), holding each cell's
+//   distance d (>= 0, NOT squared) to that cluster, at every
+//   checkpoint. The EnKF samples them at the observation points,
+//   averages over members, and weights the Kalman gain with
+//       w_c = exp(-dbar_c^2 / 2 L^2)
+//   L is in the SAME UNITS as the solver's distance — retune it
+//   whenever the clustering method or its scaling changes.
+//   If featureSpaceLocalisation is false, the two entries below are
+//   not needed.
+// ------------------------------------------------------------------
+featureSpaceLocalisation        false;
+featureSpaceLocalisationRadius  (4.3);   // length 1 or nSims — RETUNE, see note
+clusterDistanceField            clusterDist;
+
+// ------------------------------------------------------------------
+// Observation field types (fields listed in the master
+// system/sampleDict 'fields' entry). Vector fields: 'component' is the
+// assimilated component (0=x, 1=y, 2=z). Order is irrelevant — columns
+// are found by name in the .xy header. Cluster distance fields need no
+// entry here.
+// ------------------------------------------------------------------
+sampledFieldTypes
+(
+    { name U;    type vector; component 0; }
+);
+
+// Sample set name: postProcessing/sampleDict/<time>/<name>.xy
+featureSampleSetName  enkfPoints;
+
+// ************************************************************************* //

@@ -1,0 +1,67 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  10
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      EnKFDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Cycle control: in cycle c, sim1 runs until iteration c * updateInterval
+iterationCount       1;
+nCycles         40;
+restartMode     firstTime;     // latestTime (default) | firstTime
+initialTime     0;          // T0: time directory the members start from (default 0)
+updateInterval  0.08;          // firstTime: every cycle runs T0 -> T0 + interval
+memberFiles     ("0" "constant" "system" "kinetics"); 
+
+nEnsembles      20;
+cfdUncertainty  0.1;            // read but not used
+inflationFactor 1.05;
+maxFailedFraction 0.2;          // firstTime only: up to 4 of 20 members may fail per cycle
+
+parallelRun     true;          // serial members for the first test
+
+cluster
+{
+    scheduler        slurm;
+    account          urban;
+    partition        batch;
+    timeLimit        "20:00:00";
+    tasksPerNode     128;        
+    memPerCpu        "1920M";
+    solverExecutable firePimpleSMOKE;
+    envScript        "./enkf_env.sh";
+}
+
+// Global Cmu: one cluster, written/read as a plain scalar
+parameterFile   "constant/combustionOptions";
+nClusters       1;
+
+parameters
+(
+    { name chiRatio; default 3.0; perturbRange 0.25; priorUncertainty 0.40; min 1.2; max 4.0; }
+    { name chiScale; default 3.0; perturbRange 0.25; priorUncertainty 0.25; min 1.5; max 5.0; }
+);
+
+featureSpaceLocalisation false;
+
+// Assimilated field(s): those listed in the master system/sampleDict
+sampledFieldTypes
+(
+    { name CO;    type scalar;  sigmaRel 0.15;  sigmaAbs 0.003;  }
+    { name OH;    type scalar;  sigmaRel 0.25;  sigmaAbs 2e-4;   }
+    { name varf;  type scalar;  sigmaRel 0.30;  sigmaAbs 0.002;  }
+);
+
+featureSampleSetName  enkfPoints;
+
+// ************************************************************************* //

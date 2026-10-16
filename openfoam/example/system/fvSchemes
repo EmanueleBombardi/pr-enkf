@@ -1,0 +1,239 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  1.6                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSchemes;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+/* BW: Get info cfd.direct/openfoam/user-guide/v6-fvschemes
+   Some rules of thumbs:
+   - Check the mesh quality using checkMesh
+   - If non-orthogonality is higher than 80 redo it and improve the quality
+   - For LES always try to reach non-orthogonality less than 70
+*/
+
+ddtSchemes
+{
+    default         steadyState;
+}
+
+gradSchemes
+{
+/* BW: you can choose between Gauss linear and leastSquares. The latter is more accurate
+   but it tends to be more oscillatory on tetrahedral meshes. Hexahedral meshs will
+   usually give more accurate solutions, especially with the grid aligned with the flow.
+   This does not mean that tetra meshes are not good, but it means that you have to select
+   more accurately the schemes because with tetra calculation of the gradients require
+   more attention.*/
+   // default 	      Gauss linear; //Second Order, gaussian integration
+	
+
+/* BW: you can also use gradient limiters to avoid over and under shoots on the gradient computations.
+   This is the list of the limiters from the less diffusive to the more diffusive:
+   - cellMDLimited
+   - cellLimited
+   - faceMDLimited
+   - faceLimited
+   A value from 0 to 1 (blending factor) must be inserted, 
+   where 0 means accuracy limiter OFF, 1 stability limiter ON.
+*/
+    //default           cellMDLimited Gauss linear 1;
+
+/* BW: If poorer quality meshes, the discretisation of specific gradient terms can be overridden
+   to improve boundedness and stability. Usually start from grad(U)*/
+    //grad(U)         cellMDLimited Gauss linear 1; 
+    //grad(p)         cellMDLimited Gauss linear 1;
+    //grad(k)         cellMDLimited Gauss linear 1;
+    //grad(omega)     cellMDLimited Gauss linear 1;
+
+/* //BW: suggestion for non-orthogonality more than 85 if you cannot redo the mesh
+    default           faceLimited leastSquares 1;
+    grad(U)           faceLimited leastSquares 1;
+*/
+
+ //BW: suggestion for non-orthogonality between 70 and 85
+    default           cellLimited leastSquares 1;
+    grad(U)           cellLimited leastSquares 1;
+
+
+/* //BW: suggestion for non-orthogonality between 60 and 70
+    default           cellMDLimited Gauss linear 0.5;
+    grad(U)           cellMDLimited Gauss linear 0.5;
+*/
+
+/* //BW: suggestion for non-orthogonality between 40 and 60
+    default           cellMDLimited Gauss linear 0.5;
+    grad(U)           cellMDLimited Gauss linear 0.5;
+*/
+
+}
+
+divSchemes
+{
+    default          bounded Gauss limitedLinear 1;
+/*  BW: Upwind simple (the only first order) is generally not accurate.
+    V schemes could give stability but not accuracy
+    For incompressible it is better to use bounded mechanims
+    Advection of U can usually be started at second order
+    The ones of k,omega,epsilon,e require more attention with k-omega SST
+    Command to find the used schemes in tutorials
+    foamSearch $FOAM_TUTORIALS "divSchemes.div(phi,k)" fvSchemes
+*/
+
+ //BW: Initial setup: robust numerical schemes but too diffusive (1st order accurate)
+     /*div(phi,U)       bounded Gauss upwind; // First order. Robust but too diffusive.
+     //div(phi,U)       bounded Gauss linearUpwind grad(U);
+     div(phi,k)       bounded Gauss upwind; // First order
+     div(phi,omega)   bounded Gauss upwind; // First order
+     div((nuEff*dev2(T(grad(U))))) Gauss linear; //from OF 3.0.x*/
+
+
+ //BW: Accurate and stable numerical scheme (2nd order accurate)
+     div(phi,U)       bounded Gauss linearUpwindV grad(U); // 2nd order  
+     //div(phi,U)       bounded Gauss linear;
+     //div(phi,k)       bounded Gauss linearUpwind default;
+     //div(phi,omega)   bounded Gauss linearUpwind default;
+     div(phi,k)       bounded Gauss limitedLinear 1; // Second order
+     div(phi,epsilon)   bounded Gauss limitedLinear 1; // Second order
+     div(phi,omega)   bounded Gauss limitedLinear 1; // Second order
+     div((nuEff*dev2(T(grad(U))))) Gauss linear; //from OF 3.0.x
+     div((nuEff*dev(grad(U).T())))  Gauss linear;
+
+
+/* //BW: More accurate than linearUpwind but oscillatory scheme (2nd order accurate)
+     div(phi,U)       Gauss linear; // 2nd order  
+     div(phi,k)       Gauss linearUpwind default;
+     div(phi,omega)   Gauss linearUpwind default;
+     div((nuEff*dev2(T(grad(U))))) Gauss linear;
+*/
+
+/* BW: other solutions found to try or discuss
+    //div(phi,U)       bounded Gauss linearUpwindV grad(U); // Second order, unbounded
+    //div(phi,U)       bounded Gauss linearUpwindV cellMDLimited Gauss linear 1;
+    //div(phi,U)       bounded Gauss limitedLinear 0.2; // Second order    
+    //div(phi,k)       bounded Gauss limitedLinear 0.2; // Second order
+    //div(phi,omega)   bounded Gauss limitedLinear 0.2; // Second order
+    //div(phi,k)       bounded Gauss linearUpwind grad(U); // Second order (to activate in 2nd step)
+    //div(phi,omega)   bounded Gauss linearUpwind grad(U); // Second order (to activate in 2nd step)
+    //div(phi,k)       bounded Gauss linearUpwind cellMDLimited Gauss linear 1;
+    //div(phi,omega)   bounded Gauss linearUpwind cellMDLimited Gauss linear 1;
+    
+/* //BW: suggestion for non-orthogonality more than 85 if you cannot redo the mesh
+    div(phi,U)       Gauss linearUpwind grad(U);
+    div(phi,k)       Gauss upwind;
+    div(phi,omega)   Gauss upwind;
+    div((nuEff*dev2(T(grad(U))))) Gauss linear;
+*/
+
+/* //BW: suggestion for non-orthogonality between 70 and 85
+    div(phi,U)       Gauss linearUpwind grad(U);
+    div(phi,k)       Gauss upwind;
+    div(phi,omega)   Gauss upwind;
+    div((nuEff*dev2(T(grad(U))))) Gauss linear;
+*/
+
+/* //BW: suggestion for non-orthogonality between 60 and 70
+    div(phi,U)       Gauss linearUpwind grad(U);
+    div(phi,k)       Gauss linearUpwind default;
+    div(phi,omega)   Gauss linearUpwind default;
+    div((nuEff*dev2(T(grad(U))))) Gauss linear;
+*/
+
+/* //BW: suggestion for non-orthogonality between 40 and 60
+    div(phi,U)       Gauss linearUpwind grad(U);
+    div(phi,k)       Gauss linearUpwind default;
+    div(phi,omega)   Gauss linearUpwind default;
+    div((nuEff*dev2(T(grad(U))))) Gauss linear;
+*/
+
+}
+
+laplacianSchemes
+{
+  //BW: Depending on the quality of your mesh, blend the fully orthogonal scheme with non-ortho schemes
+  //Change value from 0 to 1: 
+  //  - 0 is for bad mesh quality, has non-ortho correction, is bounded
+  //  - 0.333 for medium-bad mesh quality. Basically the last step because 0 is normally not used.
+  //  - 0.5 is medium mesh quality, is less accurate than 1 case, is for non-orthogonal meshes
+  //  - 1 is for good mesh quality, has orthogonal correction, is unbounded
+    default         Gauss linear limited 0.5;       	
+ 
+/*//BW: For orthogonal meshes with very good quality and uniform cell size
+    default         Gauss linear orthogonal;   
+*/
+
+/* //BW: suggestion for non-orthogonality more than 85 if you cannot redo the mesh
+    default           Gauss linear limited 0.333;
+*/
+
+/* //BW: suggestion for non-orthogonality between 70 and 85
+    default           Gauss linear limited 0.5;
+*/
+
+/* //BW: suggestion for non-orthogonality between 60 and 70
+    default           Gauss linear limited 0.777;
+*/
+
+/* //BW: suggestion for non-orthogonality between 40 and 60
+    default           Gauss linear limited 1;
+*/    	
+     
+}
+
+interpolationSchemes
+{
+    default         linear;
+}
+
+snGradSchemes
+{
+  //BW: Depending on the quality of your mesh, blend the fully orthogonal scheme with non-ortho schemes
+  //Change value from 0 to 1: 
+  //  - 0 is for bad mesh quality, has non-ortho correction, is bounded
+  //  - 0.333 for medium-bad mesh quality. Basically the last step because 0 is normally not used.
+  //  - 0.5 is medium mesh quality, is less accurate than 1 case, is for non-orthogonal meshes
+  //  - 1 is for good mesh quality, has orthogonal correction, is unbounded, is for orthogonal meshes
+    default         limited 0.5;
+/*//BW: For orthogonal meshes with very good quality and uniform cell size
+    default         orthogonal;   
+*/   
+
+/* //BW: suggestion for non-orthogonality more than 85 if you cannot redo the mesh
+    default           limited 0.333;
+*/
+
+/* //BW: suggestion for non-orthogonality between 70 and 85
+    default           limited 0.5;
+*/
+
+/* //BW: suggestion for non-orthogonality between 60 and 70
+    default           limited 0.777;
+*/
+
+/* //BW: suggestion for non-orthogonality between 40 and 60
+    default           limited 1;
+*/  
+}
+
+fluxRequired
+{
+    default         no;
+    p               ;
+}
+//BW: keyword to be added because method is not well hardcoded in new OF versions
+wallDist
+{
+    method meshWave;
+}
+
+// ************************************************************************* //
+

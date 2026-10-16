@@ -1,0 +1,52 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  PR-EnKF settings (master case: system/EnKFDict; copy into every simK/system/)
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      EnKFDict;
+}
+
+iterationCount       1;
+nCycles         40;
+restartMode     firstTime;     // latestTime (default) | firstTime
+initialTime     0;          // T0: time directory the members start from (default 0)
+updateInterval  0.08;          // firstTime: every cycle runs T0 -> T0 + interval
+memberFiles     ("0" "constant" "system" "kinetics"); 
+
+nEnsembles      20;
+cfdUncertainty  0.1;            // read but not used
+inflationFactor 1.05;
+maxFailedFraction 0.2;  
+
+cluster
+{
+    scheduler        slurm;
+    account          <account>;
+    partition        <partition>;
+    timeLimit        "12:00:00";
+    solverExecutable simpleFoam;
+    envScript        "<path to OpenFOAM 10 environment script>";
+}
+
+parameterFile   "constant/turbulenceProperties";
+nClusters       5;
+
+parameters
+(
+    { name a1;          default 0.31;  perturbRange 0.1; priorUncertainty 0.1; }
+    { name alphaOmega2; default 0.856; perturbRange 0.1; priorUncertainty 0.1; }
+    { name betaStar;    default 0.09;  perturbRange 0.1; priorUncertainty 0.1; }
+);
+
+featureSpaceLocalisation        true;
+featureSpaceLocalisationRadius  (4.3);
+clusterDistanceField            clusterDist;
+
+sampledFieldTypes
+(
+    { name U; type vector; component 0; }
+);
+
+featureSampleSetName  enkfPoints;

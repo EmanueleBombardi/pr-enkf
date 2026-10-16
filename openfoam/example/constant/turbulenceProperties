@@ -1,0 +1,99 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  7
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      turbulenceProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+#include    "../0/ABLConditions"
+
+simulationType RAS;
+
+RAS
+{
+    RASModel        ABLkOmegaSST;
+    turbulence      on;
+    printCoeffs     on;
+
+    clusteringInterval  100;
+
+    // Features used for clustering — must match Python script featureList exactly
+    featureList     (Udev Kdev);
+
+    // Normalisation params from CEDVAL_B11 reference domain (one value per feature, same order as featureList)
+    featureMeans    ( 4.476665e-02    -2.749864e-02 );
+    featureStds     ( 1.810686e-01     1.606698e-01 );
+
+    // Per-cluster parameters (4 clusters, one value per cluster)
+    a1              (0.33308063 0.20509383 0.32331935 0.33806784 0.31555718);
+    betaStar        (0.09936806 0.09029939 0.10056492 0.09383165 0.06656847);
+    //sigmaK          (0.89428247 0.78469657 0.85142145 0.80966979 0.80966979);
+    alphaOmega2     (0.93149074 0.84587883 0.81509333 0.78232439 0.83243360);
+
+    // Cluster centroids in NORMALISED feature space
+    // Order: (Udev  Kdev) — one row per cluster, same order as a1/betaStar/sigmaK
+    centroids
+    (
+            (  -2.441656e-01   1.498638e-01 )
+            (  4.981208e+00    5.086749e+00 )
+            (  4.882954e+00   -1.542476e-01 )
+            (  2.865366e+00   -8.429725e+00 ) 
+            (  1.719207e+00   -3.856515e-02 )   // C3: low Kerr, high Uerr   (velocity-disturbed)
+    );
+
+    b1              1.0;
+    c1              10.0;
+
+    // Blending coefficients between k-omega and k-epsilon regions
+    alphaK1         0.85;
+    alphaK2         1.0;
+    alphaOmega1     0.5;
+
+    // Production/destruction terms
+    gamma1          0.555;
+    gamma2          0.44;
+    beta2           0.0828;
+
+    Cmu             $Cmu;
+    C1              $C1;
+    C2              $C2;
+    C3              $C3;
+    sigmak          $sigmak;
+    sigmaEps        $sigmaEps;
+    betaStarMax     $betaStarMax;
+    z0              $z0;
+    kappa           $kappa;
+    ustar           $ustar;
+    zDir            $zDir;
+    flowDir         $flowDir;
+    A               $Atke;
+    B               $Btke;
+    C               $Ctke;
+    D               $Dtke;
+    E               $Etke;
+    blendCoeff      $blendCoeff;
+    thresholdU      $thresholdU;
+    thresholdO      $thresholdO;
+    thresholdK      $thresholdK;
+    constantU       $constantU;
+    constantO       $constantO;
+    constantK       $constantK;
+    thresholdUdevLow    $thresholdUdevLow;
+    thresholdUdevHigh    $thresholdUdevHigh;
+    thresholdKdevLow    $thresholdKdevLow;
+    thresholdKdevHigh    $thresholdKdevHigh;
+    msel            $msel;
+    hABL            $hABL;
+    zGround         $zGround;
+}
+
+// ************************************************************************* //

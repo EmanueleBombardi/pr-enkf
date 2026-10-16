@@ -1,0 +1,32 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  Domain sampleDict (simK/system/sampleDict).
+  In the master case, only the 'fields' entry is read.
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      sampleDict;
+}
+
+type                sets;
+libs                ("libsampling.so");
+interpolationScheme cellPoint;
+setFormat           raw;                 // required
+
+sets
+(
+    enkfPoints                           // = featureSampleSetName
+    {
+        type    points;
+        ordered yes;
+        axis    xyz;                     // required
+        points
+        (
+            (-0.04 0 0.130036)           // same order as experimentalData_*
+            (-0.04 0 0.13978)
+        );
+    }
+);
+
+fields  (U "clusterDist.*");             // assimilated fields (+ distances if localisation)

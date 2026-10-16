@@ -1,0 +1,7 @@
+../../src/EnKF_multiVariable_multiDomain_clustering/EnKF_multiVariable_multiDomain_clustering.C
+EnKF_FoamMultiVariable_multiDomain_clustering.C
+
+EXE = $(FOAM_USER_APPBIN)/EnKF_FoamMultiVariable_multiDomain_clustering_v10
+
+
+

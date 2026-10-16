@@ -1,0 +1,54 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  7
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application       simpleFoam;
+
+startFrom         latestTime;
+
+startTime         0;
+
+stopAt            endTime;
+
+endTime           10000000;
+
+deltaT            1;
+
+writeControl      timeStep;
+
+writeInterval     1;
+
+purgeWrite        2;
+
+writeFormat       ascii;
+
+writePrecision    6;
+
+writeCompression  uncompressed;
+
+timeFormat        general;
+
+timePrecision     6;
+
+runTimeModifiable true;
+
+// adjustTimeStep  yes;
+
+// maxCo           1;
+
+libs ("libABLkOmegaSST_constBetaStar_clusters_fixNorm_v10.so");
+//libs ("libABLkOmegaSST_Extended_New_2.so");
+//libs ("myLibABLkOmegaSST_newSource.so" "libEnKF.so");
+// ************************************************************************* //

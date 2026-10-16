@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite the paper below."
+title: "PR-EnKF: Parameter-Regularised Ensemble Kalman Filter"
+type: software
+authors:
+  - family-names: Bombardi
+    given-names: Emanuele
+    affiliation: "Université libre de Bruxelles"
+repository-code: "https://github.com/EmanueleBombardi/pr-enkf"
+license: GPL-3.0-only
+version: 1.0.0
+date-released: 2026-10-01
+preferred-citation:
+  type: article
+  title: "Transferable inference of turbulence models for urban flows with the Parameter-Regularised Ensemble Kalman Filter"
+  authors:
+    - family-names: Bombardi
+      given-names: Emanuele
+    - family-names: Nóvoa
+      given-names: Andrea
+    - family-names: Magri
+      given-names: Luca
+    - family-names: Parente
+      given-names: Alessandro
+  journal: "arXiv preprint"
+  identifiers:
+    - type: other
+      value: "arXiv:2607.03571"
+  url: "https://arxiv.org/abs/2607.03571"
+  year: 2026

@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.ipynb_checkpoints/
+.pytest_cache/
+
+# macOS
+.DS_Store
+
+# OpenFOAM build products
+openfoam/**/lnInclude/
+openfoam/**/Make/linux*/
+openfoam/**/Make/darwin*/
+
+# OpenFOAM outputs (never commit simulation results)
+openfoam/**/processor*/
+openfoam/**/postProcessing/
+openfoam/**/EnKFmembers/
+openfoam/**/log.*
+openfoam/**/slurm-*.out
+openfoam/**/slurm-*.err
+*.foam
+*~
+openfoam/**/cellDecomposition
+openfoam/**/cellMap
+openfoam/**/faceMap
+openfoam/**/pointMap
+openfoam/**/enkfPerturbations
+openfoam/**/polyMesh/
